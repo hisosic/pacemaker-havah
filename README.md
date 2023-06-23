@@ -105,23 +105,24 @@ Daemon Status:
 ```
 
 
-## (ONE) Configure Cluster CIB (Cluster Information Base)
+## (ONE) 클러스터 CIB(Cluster Inforamtion Base) 설정
 
+### 초기 설정
 ```
 [root@validator01 ~]$ pcs cluster cib tmp-cib.xml
 
 [root@validator01 ~]$ pcs -f tmp-cib.xml property set stonith-enabled=false
 ```
+:warning: 초기 설치 후 SONITH는 기본 enable 상태인데 STONITH (Fencing) 설정이 되어 있지 않아 오류가 발생
+함.
+STONITH (Fencing) 기능을 사용하지 않고 운영하여도 문제 없음. 사용 하려면 아래 링크 참고 바랍니다.
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/
+configuring_and_managing_high_availability_clusters/assembly_configuring-fencingconfiguring-
+and-managing-high-availability-clusters
 
-:warning: After the initial setup, STONITH is enabled by default, but since STONITH (Fencing) is not configured, an error occurs.
-
-It is safe to operate without using the STONITH (Fencing) feature. If you want to use it, please refer to the link below.
-
-[Chapter 10. Configuring fencing in a Red Hat High Availability cluster](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_fencing_in_a_red_hat_high_availability_cluster/index)
 
 
-
-# Resource 등록
+### Resource 등록
 
 ```
 # Active Node resource (*havah_active*) 등록
@@ -162,18 +163,18 @@ It is safe to operate without using the STONITH (Fencing) feature. If you want t
  
 
  
-## Constraint Order(실행순서 규칙) Config 적용
+### Constraint Order(실행순서 규칙) Config 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml constraint order havah_active then havah_status
 ```
 
-## Resource-stickiness (노드 우선사용 규칙) 적용
+### Resource-stickiness (노드 우선사용 규칙) 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource defaults resource-stickiness=3000
 Warning: Defaults do not apply to resources which override them with their own defined values
 ```
 
-## Config 적용
+### Config 적용 배포
 ```
 [root@validator01 ~]$ pcs cluster cib-push tmp-cib.xml
 ```
@@ -224,7 +225,7 @@ Daemon Status:
 - pcs status 로 확인하면 cluster02 노드에서 havah_backup resource 기동 되는게 확인 됨. :white_check_mark:
 
 
-## Failover 테스트 및 Restore 절차
+# Failover 테스트 및 Restore 절차
 
 - cluster01 노드 장애로 인해 Failover 상태 확인.
 
@@ -265,7 +266,6 @@ Daemon Status:
 
 - 첫째, 수동으로 FailCount Reset 해준다.
 ```
-
 [root@validator01 ~]$ pcs resource failcount show <resource-name>
 
 [root@validator01 ~]$ pcs resource failcount reset <resource-name>
@@ -273,8 +273,7 @@ Daemon Status:
 
 
 ## Cluster 상태 복구 절차 (Active Resource  cluster02 → cluster01)
-###  모든 노드가 Online 상태인지 확인.
-
+### 모든 노드가 Online 상태인지 확인.
 ```
 [root@validator01 ~]$ pcs status
 ...
@@ -331,8 +330,8 @@ Full list of resources:
  Resource Group: Backup
      havah_backup	(lsb:havah_backup):     Stopped (disabled)
 ...
+# havah_active 기동 시 스크립트 상 havah_bakcup disable 시키는 로직이 있음. (active 기동 간섭 방지용)
 ```
-:check_mark:  havah_active 기동 시 스크립트 상 havah_bakcup disable 시키는 로직이 있음. (active 기동 간섭 방지용)
 
  
 
@@ -366,8 +365,9 @@ Location Constraints:
     
 [root@validator01 ~]$ pcs constraint location remove cli-prefer-Active   ## 위 명령 결과 값 id 입력
 [root@validator01 ~]$ pcs constraint location remove cli-prefer-havah_active  ## 위 명령 결과 값 id 입력
-:check_mark: 해당 location 설정이 되어 있다면, Resource 기동 시  설정 되어 있는 노드 우선 적으로 실행 하게 됨.
+# 해당 location 설정이 되어 있다면, Resource 기동 시  설정 되어 있는 노드 우선 적으로 실행 하게 됨.
 ```
+
  
 
  
@@ -375,12 +375,12 @@ Location Constraints:
 # Pacemaker 기본 운영 명령어.
  
 
-### Create cluster 
+## Create cluster 
 ```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
 ```
 
-### cluster 시작 및 중지
+## cluster 시작 및 중지
 
 시작
 ```
@@ -397,24 +397,24 @@ Location Constraints:
 
  
 
-### pacemaker 상태 체크
+## pacemaker 상태 체크
 ```
 [root@validator01 ~]$ pcs status
 ```
 
-### havah_active Resource 를 활성 및 비활성
+## havah_active Resource 를 활성 및 비활성
 ```
 [root@validator01 ~]$ pcs resource enable havah_active
 [root@validator01 ~]$ pcs resource disable havah_active
 ```
 
-### Resource 노드 간 이동
+## Resource 노드 간 이동
 ```
 [root@validator01 ~]$ pcs resource move havah_active cluster02
 [root@validator01 ~]$ pcs resource move Active cluster02
 ```
 
-### havah_active 의 Fail Count 확인 및 Reset
+## havah_active 의 Fail Count 확인 및 Reset
 
 ```
 [root@validator01 ~]$ pcs resource failcount show
@@ -425,12 +425,12 @@ Location Constraints:
 
  
 
-### pacemaker 구성 초기화
+## pacemaker 구성 초기화
 ```
 [root@validator01 ~]$ pcs cluster destroy
 ```
 
-### pcs 기본 명령 구성정보
+## pcs 기본 명령 구성정보
 ```
 - pcs cluster: 클러스터 노드 관련 작업
 - pcs property: 클러스터 속성 설정
