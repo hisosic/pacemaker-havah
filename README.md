@@ -273,7 +273,7 @@ Daemon Status:
 
 
 ## Cluster 상태 복구 절차 (Active Resource  cluster02 → cluster01)
-:info:  모든 노드가 Online 상태인지 확인.
+###  모든 노드가 Online 상태인지 확인.
 
 ```
 [root@validator01 ~]$ pcs status
@@ -293,7 +293,7 @@ Full list of resources:
 ...
 ```
 
-:info:  havah_backup  Resource 활성 및 상태 확인.
+###  havah_backup  Resource 활성 및 상태 확인.
 ```
 [root@validator01 ~]$ pcs resource enable havah_backup
 
@@ -315,7 +315,7 @@ Full list of resources:
 ...
 ```
 
-:info:  cluster01 노드 BlockSync 완료 후 Resource  노드 위치 원복. (cluster02 → cluster01)
+###  cluster01 노드 BlockSync 완료 후 Resource  노드 위치 원복. (cluster02 → cluster01)
 
 ```
 [root@validator01 ~]$ pcs resource move Active cluster01
@@ -336,7 +336,7 @@ Full list of resources:
 
  
 
-:info:  havah_backup Resource 다시 활성화
+###  havah_backup Resource 다시 활성화
 ```
 [root@validator01 ~]$ pcs resource enable havah_backup
 
@@ -355,7 +355,7 @@ Full list of resources:
 ...
 ```
 
-:info:  pcs location Fixed 설정 제거 하기
+###  pcs location Fixed 설정 제거 하기
 ```
 [root@validator01 ~]$ pcs constraint location --full
 Location Constraints:
@@ -375,12 +375,12 @@ Location Constraints:
 # Pacemaker 기본 운영 명령어.
  
 
-:info: Create cluster 
+### Create cluster 
 ```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
 ```
 
-:info: cluster 시작 및 중지
+### cluster 시작 및 중지
 
 시작
 ```
@@ -397,24 +397,24 @@ Location Constraints:
 
  
 
-:info: pacemaker 상태 체크
+### pacemaker 상태 체크
 ```
 [root@validator01 ~]$ pcs status
 ```
 
-:info: havah_active Resource 를 활성 및 비활성
+### havah_active Resource 를 활성 및 비활성
 ```
 [root@validator01 ~]$ pcs resource enable havah_active
 [root@validator01 ~]$ pcs resource disable havah_active
 ```
 
-:info: Resource 노드 간 이동
+### Resource 노드 간 이동
 ```
 [root@validator01 ~]$ pcs resource move havah_active cluster02
 [root@validator01 ~]$ pcs resource move Active cluster02
 ```
 
-:info: havah_active 의 Fail Count 확인 및 Reset
+### havah_active 의 Fail Count 확인 및 Reset
 
 ```
 [root@validator01 ~]$ pcs resource failcount show
@@ -425,12 +425,12 @@ Location Constraints:
 
  
 
-:info: pacemaker 구성 초기화
+### pacemaker 구성 초기화
 ```
 [root@validator01 ~]$ pcs cluster destroy
 ```
 
-:info: pcs 기본 명령 구성정보
+### pcs 기본 명령 구성정보
 ```
 - pcs cluster: 클러스터 노드 관련 작업
 - pcs property: 클러스터 속성 설정
@@ -443,4 +443,4 @@ Location Constraints:
 
  
 
-### 참고 사이트 : Chapter 14. Colocating cluster resources Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
+##### 참고 사이트 : Chapter 14. Colocating cluster resources Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
