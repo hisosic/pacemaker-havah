@@ -11,7 +11,7 @@ havah-chain-node HA
   - docker-compose.yml
  
 
-# (ALL) hosts 파일에 Pacemaker HeartBeat IP 추가 (Cluster 통신 목적)
+### (ALL) hosts 파일에 Pacemaker HeartBeat IP 추가 (Cluster 통신 목적)
 - `/etc/hosts`
 ```
 [root@validator001 ~]$ sudo cat /etc/hosts
@@ -28,7 +28,7 @@ havah-chain-node HA
 - Pacemaker 설치 되는 노드 간 양방향 Port Open 필요 합니다. (TCP 22, TCP 2224, TCP 9000, UDP 5404 ~ 5412)
 
 
-## (ALL) Package Install 및 Pacemaker 활성 (CentOS 및 RHEL 기반)
+### (ALL) Package Install 및 Pacemaker 활성 (CentOS 및 RHEL 기반)
 
 ```
 [root@validator01 ~]$ yum install pacemaker pcs resource-agents
@@ -38,7 +38,7 @@ havah-chain-node HA
 :warning: AWS EC2 활용 시 amazon linux kenel 5버전 이하 ami으로 사용 권장 합니다. (kenel 6 epel 패키지 지원 안함)
 
 
-## (ALL) Package Install (Ubuntu)
+### (ALL) Package Install (Ubuntu)
 
 ```
 [root@validator01 ~]$ apt install pacemaker corosync fence-agents pcs
@@ -46,7 +46,7 @@ havah-chain-node HA
 ```
 
 
-## (ALL) hacluster 계정 패스워드 설정 (P@ssw0rd)
+### (ALL) hacluster 계정 패스워드 설정 (P@ssw0rd)
 
 ```
 [root@validator01 ~]$ passwd hacluster
@@ -66,7 +66,7 @@ passwd: all authentication tokens updated successfully.
 # Pacemaker Configure
 
 
-## (ONE) Cluster 노드 등록
+### (ONE) Cluster 노드 등록
 
 ```
 [root@validator01 ~]$ pcs cluster auth cluster01 cluster02 <> /dev/tty
@@ -77,14 +77,14 @@ cluster01: Authorized
 ```
 
 
-## (ONE) Cluster 설정
+### (ONE) Cluster 설정
 
 ```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
 ```
 
 
-## (ONE) Start Cluster and Check Status
+### (ONE) Start Cluster and Check Status
 
 ```
 [root@validator01 ~]$ pcs cluster start --all --wait=60
@@ -117,9 +117,9 @@ Daemon Status:
 ```
 
 
-# (ONE) 클러스터 CIB(Cluster Inforamtion Base) 설정
+### (ONE) 클러스터 CIB(Cluster Inforamtion Base) 설정
 
-## 초기 설정
+#### 초기 설정
 ```
 [root@validator01 ~]$ pcs cluster cib tmp-cib.xml
 
@@ -134,7 +134,7 @@ and-managing-high-availability-clusters
 
 
 
-## Resource 등록
+### Resource 등록
 
 ```
 # Active Node resource (*havah_active*) 등록
@@ -175,23 +175,23 @@ and-managing-high-availability-clusters
  
 
  
-## Constraint Order(실행순서 규칙) Config 적용
+### Constraint Order(실행순서 규칙) Config 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml constraint order havah_active then havah_status
 ```
 
-## Resource-stickiness (노드 우선사용 규칙) 적용
+### Resource-stickiness (노드 우선사용 규칙) 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource defaults resource-stickiness=3000
 Warning: Defaults do not apply to resources which override them with their own defined values
 ```
 
-## Config 적용 배포
+### Config 적용 배포
 ```
 [root@validator01 ~]$ pcs cluster cib-push tmp-cib.xml
 ```
 
-# Pacemaker Status Check
+### Pacemaker Status Check
 초기 기본 상태 확인
 ```
 [root@validator01 ~]$ pcs status
@@ -222,7 +222,7 @@ Daemon Status:
   pcsd: active/enabled
 ```
 
-## Cluster Status
+### Cluster Status
 
 - Active Group의 havah_active, havah_status Resource 가 cluster01 서버에서 실행 중 :white_check_mark:
 - Backup Group의 havah_backup Resource 가 Stopped(disabled) 되어 있음. :white_check_mark:
@@ -238,7 +238,7 @@ Daemon Status:
 
 # Failover 테스트 및 Restore 절차
 
-- cluster01 노드 장애로 인해 Failover 상태 확인.
+### cluster01 노드 장애로 인해 Failover 상태 확인.
 
 ```
 [root@validator01 ~]$ pcs status
@@ -386,12 +386,12 @@ Location Constraints:
 # Pacemaker 기본 운영 명령어.
  
 
-## Create cluster 
+### Create cluster 
 ```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
 ```
 
-## cluster 시작 및 중지
+### cluster 시작 및 중지
 
 시작
 ```
@@ -408,24 +408,24 @@ Location Constraints:
 
  
 
-## pacemaker 상태 체크
+### pacemaker 상태 체크
 ```
 [root@validator01 ~]$ pcs status
 ```
 
-## havah_active Resource 를 활성 및 비활성
+### havah_active Resource 를 활성 및 비활성
 ```
 [root@validator01 ~]$ pcs resource enable havah_active
 [root@validator01 ~]$ pcs resource disable havah_active
 ```
 
-## Resource 노드 간 이동
+### Resource 노드 간 이동
 ```
 [root@validator01 ~]$ pcs resource move havah_active cluster02
 [root@validator01 ~]$ pcs resource move Active cluster02
 ```
 
-## havah_active 의 Fail Count 확인 및 Reset
+### havah_active 의 Fail Count 확인 및 Reset
 
 ```
 [root@validator01 ~]$ pcs resource failcount show
@@ -436,12 +436,12 @@ Location Constraints:
 
  
 
-## pacemaker 구성 초기화
+### pacemaker 구성 초기화
 ```
 [root@validator01 ~]$ pcs cluster destroy
 ```
 
-## pcs 기본 명령 구성정보
+### pcs 기본 명령 구성정보
 ```
 - pcs cluster: 클러스터 노드 관련 작업
 - pcs property: 클러스터 속성 설정
@@ -454,4 +454,4 @@ Location Constraints:
 
  
 
-##### 참고 사이트 : Chapter 14. Colocating cluster resources Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
+#### 참고 사이트 : Chapter 14. Colocating cluster resources Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
