@@ -10,6 +10,17 @@ havah-chain-node HA
 - `/app/havah-chain-node/`
   - docker-compose.yml
  
+
+# (ALL) hosts 파일에 Pacemaker HeartBeat IP 추가 (Cluster 통신 목적)
+- `/etc/hosts`
+```
+[root@validator001 ~]$ sudo cat /etc/hosts
+127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1 localhost localhost.localdomain localhost6 localhost6.localdomain6
+10.10.10.101 cluster01
+10.10.10.102 cluster02
+```
+
  
  
 # Pacemaker Install
