@@ -9,9 +9,12 @@ havah-chain-node HA
 - `/app/havah-chain-node/`
   - docker-compose.yml
 
+
+
 # Pacemaker Install
 
 - Pacemaker 설치 되는 노드 간 양방향 Port Open 필요 합니다. (TCP 22, TCP 2224, TCP 9000, UDP 5404 ~ 5412)
+
 
 ## (ALL) Package Install 및 Pacemaker 활성 (CentOS 및 RHEL 기반)
 
@@ -22,12 +25,14 @@ havah-chain-node HA
 
 :warning: AWS EC2 활용 시 amazon linux kenel 5버전 이하 ami으로 사용 권장 합니다. (kenel 6 epel 패키지 지원 안함)
 
+
 ## (ALL) Package Install (Ubuntu)
 
 ```
 [root@validator01 ~]$ apt install pacemaker corosync fence-agents pcs
 [root@validator01 ~]$ systemctl enable pcsd.service
 ```
+
 
 ## (ALL) hacluster 계정 패스워드 설정 (P@ssw0rd)
 
@@ -41,7 +46,10 @@ passwd: all authentication tokens updated successfully.
 [root@validator01 ~]$
 ```
 
+
+
 # Pacemaker Configure
+
 
 ## (ONE) Cluster 노드 등록
 
@@ -54,13 +62,14 @@ cluster01: Authorized
 ```
 
 
-### (ONE) Cluster Setup
+## (ONE) Cluster 설정
 
 ```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
 ```
 
-### (ONE) Start Cluster and Check Status
+
+## (ONE) Start Cluster and Check Status
 
 ```
 [root@validator01 ~]$ pcs cluster start --all --wait=60
@@ -92,7 +101,8 @@ Daemon Status:
   pcsd: active/enabled
 ```
 
-### (ONE) Configure Cluster CIB (Cluster Information Base)
+
+## (ONE) Configure Cluster CIB (Cluster Information Base)
 
 ```
 [root@validator01 ~]$ pcs cluster cib tmp-cib.xml
@@ -107,7 +117,8 @@ It is safe to operate without using the STONITH (Fencing) feature. If you want t
 [Chapter 10. Configuring fencing in a Red Hat High Availability cluster](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_fencing_in_a_red_hat_high_availability_cluster/index)
 
 
-Resource 등록
+
+# Resource 등록
 
 ```
 # Active Node resource (*havah_active*) 등록
@@ -148,7 +159,6 @@ Resource 등록
  
 
  
-
 ## Constraint Order(실행순서 규칙) Config 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml constraint order havah_active then havah_status
@@ -196,10 +206,12 @@ Daemon Status:
   pcsd: active/enabled
 ```
 
+
 ## Cluster Status
 
 - Active Group의 havah_active, havah_status Resource 가 cluster01 서버에서 실행 중 :white_check_mark:
 - Backup Group의 havah_backup Resource 가 Stopped(disabled) 되어 있음. :white_check_mark:
+
 
 ## havah_backup Resource 기동
 
@@ -207,6 +219,7 @@ Daemon Status:
 [root@validator01 ~]$ pcs resource enable havah_backup
 ```
 - pcs status 로 확인하면 cluster02 노드에서 havah_backup resource 기동 되는게 확인 됨. :white_check_mark:
+
 
 ## Failover 테스트 및 Restore 절차
 
@@ -248,21 +261,18 @@ Daemon Status:
 그 이유는 FailCount 설정 때문이다. 이를 해결할 수 있는 방법은
 
 - 첫째, 수동으로 FailCount Reset 해준다.
-
-- 
+```
 
 [root@validator01 ~]$ pcs resource failcount show <resource-name>
 
 [root@validator01 ~]$ pcs resource failcount reset <resource-name>
- 
+```
 
- 
 
- 
-
-Cluster 상태 복구 절차 (Active Resource  cluster02 → cluster01)
+## Cluster 상태 복구 절차 (Active Resource  cluster02 → cluster01)
 :info:  모든 노드가 Online 상태인지 확인.
 
+```
 [root@validator01 ~]$ pcs status
 ...
 2 nodes configured
@@ -278,10 +288,10 @@ Full list of resources:
  Resource Group: Backup
      havah_backup	(lsb:havah_backup):	Stopped (disabled)
 ...
- 
+```
 
 :info:  havah_backup  Resource 활성 및 상태 확인.
-
+```
 [root@validator01 ~]$ pcs resource enable havah_backup
 
 [root@validator01 ~]$ pcs status
@@ -300,10 +310,11 @@ Full list of resources:
      havah_backup	(lsb:havah_backup):	Started cluster01  ## cluster01 노드에서 활성 확인.
 
 ...
- 
+```
 
 :info:  cluster01 노드 BlockSync 완료 후 Resource  노드 위치 원복. (cluster02 → cluster01)
 
+```
 [root@validator01 ~]$ pcs resource move Active cluster01
 
 ...
@@ -317,12 +328,13 @@ Full list of resources:
  Resource Group: Backup
      havah_backup	(lsb:havah_backup):     Stopped (disabled)
 ...
+```
 :check_mark:  havah_active 기동 시 스크립트 상 havah_bakcup disable 시키는 로직이 있음. (active 기동 간섭 방지용)
 
  
 
 :info:  havah_backup Resource 다시 활성화
-
+```
 [root@validator01 ~]$ pcs resource enable havah_backup
 
 [root@validator01 ~]$ pcs status
@@ -338,10 +350,10 @@ Full list of resources:
  Resource Group: Backup
      havah_backup	(lsb:havah_backup):	Started cluster02
 ...
- 
+```
 
 :info:  pcs location Fixed 설정 제거 하기
-
+```
 [root@validator01 ~]$ pcs constraint location --full
 Location Constraints:
   Resource: Active
@@ -352,65 +364,71 @@ Location Constraints:
 [root@validator01 ~]$ pcs constraint location remove cli-prefer-Active   ## 위 명령 결과 값 id 입력
 [root@validator01 ~]$ pcs constraint location remove cli-prefer-havah_active  ## 위 명령 결과 값 id 입력
 :check_mark: 해당 location 설정이 되어 있다면, Resource 기동 시  설정 되어 있는 노드 우선 적으로 실행 하게 됨.
-
+```
  
 
  
 
-Pacemaker 기본 운영 명령어.
+# Pacemaker 기본 운영 명령어.
  
 
 :info: Create cluster 
-
+```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
- 
+```
 
 :info: cluster 시작 및 중지
 
 시작
+```
 [root@validator01 ~]$ pcs cluster start  # Start on One node
 [root@validator01 ~]$ pcs cluster start -all  # Start on all cluster members
+```
 
 중지
+```
 [root@validator01 ~]$ pcs cluster stop  # Stop One node
 [root@validator01 ~]$ pcs cluster stop -all  # Stop all cluster members
+```
 :warning:  서버 재기동 시 Offline 으로 되어 있다면 위 start 명령어로 기동 시킴.
 
  
 
 :info: pacemaker 상태 체크
-
+```
 [root@validator01 ~]$ pcs status
- 
+```
 
 :info: havah_active Resource 를 활성 및 비활성
-
+```
 [root@validator01 ~]$ pcs resource enable havah_active
 [root@validator01 ~]$ pcs resource disable havah_active
- 
+```
 
 :info: Resource 노드 간 이동
-
+```
 [root@validator01 ~]$ pcs resource move havah_active cluster02
 [root@validator01 ~]$ pcs resource move Active cluster02
- 
+```
 
 :info: havah_active 의 Fail Count 확인 및 Reset
 
+```
 [root@validator01 ~]$ pcs resource failcount show
 [root@validator01 ~]$ pcs resource failcount reset havah_active
+```
 :warning:  pcs status 화면에서 Failed Resource Actions 부분에 에러 정보가 확인 됨. 
        Fail Count가 많아 지면 Resource 동작이 Blocked 되기 때문에, 장애 원인 해결 후 Count Reset 을 해줘야 함.
 
  
 
 :info: pacemaker 구성 초기화
-
+```
 [root@validator01 ~]$ pcs cluster destroy
- 
+```
 
 :info: pcs 기본 명령 구성정보
-
+```
 - pcs cluster: 클러스터 노드 관련 작업
 - pcs property: 클러스터 속성 설정
 - pcs resource: 리소스 관련 작업
@@ -418,8 +436,8 @@ Pacemaker 기본 운영 명령어.
 - pcs stonith: STONITH 관련 작업
 - pcs status: 클러스터 상태 확인
 - pcs config: 클러스터 구성 파일 생성 및 관리
- 
+```
 
  
 
-참고 사이트 : Chapter 14. Colocating cluster resources Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
+### 참고 사이트 : Chapter 14. Colocating cluster resources Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
