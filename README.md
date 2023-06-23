@@ -1,5 +1,6 @@
 # pacemaker-havah
 havah-chain-node HA
+
 # 파일 위치
 
 - `/etc/init.d/`
@@ -8,9 +9,9 @@ havah-chain-node HA
   - havah_status
 - `/app/havah-chain-node/`
   - docker-compose.yml
-
-
-
+ 
+ 
+ 
 # Pacemaker Install
 
 - Pacemaker 설치 되는 노드 간 양방향 Port Open 필요 합니다. (TCP 22, TCP 2224, TCP 9000, UDP 5404 ~ 5412)
@@ -105,9 +106,9 @@ Daemon Status:
 ```
 
 
-## (ONE) 클러스터 CIB(Cluster Inforamtion Base) 설정
+# (ONE) 클러스터 CIB(Cluster Inforamtion Base) 설정
 
-### 초기 설정
+## 초기 설정
 ```
 [root@validator01 ~]$ pcs cluster cib tmp-cib.xml
 
@@ -122,7 +123,7 @@ and-managing-high-availability-clusters
 
 
 
-### Resource 등록
+## Resource 등록
 
 ```
 # Active Node resource (*havah_active*) 등록
@@ -163,23 +164,23 @@ and-managing-high-availability-clusters
  
 
  
-### Constraint Order(실행순서 규칙) Config 적용
+## Constraint Order(실행순서 규칙) Config 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml constraint order havah_active then havah_status
 ```
 
-### Resource-stickiness (노드 우선사용 규칙) 적용
+## Resource-stickiness (노드 우선사용 규칙) 적용
 ```
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource defaults resource-stickiness=3000
 Warning: Defaults do not apply to resources which override them with their own defined values
 ```
 
-### Config 적용 배포
+## Config 적용 배포
 ```
 [root@validator01 ~]$ pcs cluster cib-push tmp-cib.xml
 ```
 
-## Pacemaker Status Check
+# Pacemaker Status Check
 초기 기본 상태 확인
 ```
 [root@validator01 ~]$ pcs status
@@ -209,7 +210,6 @@ Daemon Status:
   pacemaker: active/enabled
   pcsd: active/enabled
 ```
-
 
 ## Cluster Status
 
@@ -264,7 +264,7 @@ Daemon Status:
 
 그 이유는 FailCount 설정 때문이다. 이를 해결할 수 있는 방법은
 
-- 첫째, 수동으로 FailCount Reset 해준다.
+- 수동으로 FailCount Reset 해준다.
 ```
 [root@validator01 ~]$ pcs resource failcount show <resource-name>
 
