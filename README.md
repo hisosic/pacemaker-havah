@@ -1,72 +1,68 @@
 # pacemaker-havah
 havah-chain-node HA
+# 파일 위치
 
+- `/etc/init.d/`
+  - havah_active
+  - havah_backup
+  - havah_status
+- `/app/havah-chain-node/`
+  - docker-compose.yml
 
-파일 위치 :
-/etc/init.d/
-havah_active
-havah_backup
-havah_status
+# Pacemaker Install
 
-/app/havah-chain-node/
-docker-compose.yml
+- Pacemaker 설치 되는 노드 간 양방향 Port Open 필요 합니다. (TCP 22, TCP 2224, TCP 9000, UDP 5404 ~ 5412)
 
+## (ALL) Package Install 및 Pacemaker 활성 (CentOS 및 RHEL 기반)
 
-
-PaceMaker Install
- 
-
-* Pacemaker 설치 되는 노드 간 양방향 Port Open 필요 합니다.
-(TCP 22 , TCP 2224, TCP 9000, UDP 5404 ~ 5412)
-
- 
-
-(ALL) Package Install 및 Pacemaker 활성 (CentOS 및 RHEL 기반)
-
+```
 [root@validator01 ~]$ yum install pacemaker pcs resource-agents
 [root@validator01 ~]$ systemctl enable pcsd.service
-:warning:  AWS EC2 활용 시 amazon linux kenel 5버전 이하 ami으로 사용 권장 합니다. (kenel 6  epel 패키지 지원 안함) 
+```
 
- 
+:warning: AWS EC2 활용 시 amazon linux kenel 5버전 이하 ami으로 사용 권장 합니다. (kenel 6 epel 패키지 지원 안함)
 
-(ALL) Package Install (Ubuntu)
+## (ALL) Package Install (Ubuntu)
 
+```
 [root@validator01 ~]$ apt install pacemaker corosync fence-agents pcs
 [root@validator01 ~]$ systemctl enable pcsd.service
- 
+```
 
-(ALL) hacluster 계정 패스워드 설정 (P@ssw0rd)
+## (ALL) hacluster 계정 패스워드 설정 (P@ssw0rd)
 
+```
 [root@validator01 ~]$ passwd hacluster
 Changing password for user hacluster.
 New password:
 BAD PASSWORD: The password contains the user name in some form
 Retype new password:
 passwd: all authentication tokens updated successfully.
-[root@validator01 ~]$ 
- 
+[root@validator01 ~]$
+```
 
- 
+# Pacemaker Configure
 
-PaceMaker Configure
- 
+## (ONE) Cluster 노드 등록
 
-(ONE) Cluster 노드 등록
-
+```
 [root@validator01 ~]$ pcs cluster auth cluster01 cluster02 <> /dev/tty
 Username: hacluster
 Password: P@ssw0rd (패스워드 입력)
 cluster02: Authorized
 cluster01: Authorized
- 
+```
 
-(ONE) 클러스터 생성
 
+### (ONE) Cluster Setup
+
+```
 [root@validator01 ~]$ pcs cluster setup --name cluster cluster01 cluster02 --transport udpu
- 
+```
 
-(ONE) 클러스터 시작 및 Status 확인.
+### (ONE) Start Cluster and Check Status
 
+```
 [root@validator01 ~]$ pcs cluster start --all --wait=60
 
 [root@validator01 ~]$ systemctl enable corosync pacemaker pcsd
@@ -94,23 +90,26 @@ Daemon Status:
   corosync: active/enabled
   pacemaker: active/enabled
   pcsd: active/enabled
- 
+```
 
-(ONE) 클러스터 CIB(Cluster Inforamtion Base) 설정
-초기 설정
+### (ONE) Configure Cluster CIB (Cluster Information Base)
 
+```
 [root@validator01 ~]$ pcs cluster cib tmp-cib.xml
 
 [root@validator01 ~]$ pcs -f tmp-cib.xml property set stonith-enabled=false
-:warning:  초기 설치 후 SONITH는 기본 enable 상태인데 STONITH (Fencing) 설정이 되어 있지 않아 오류가 발생함.
+```
 
-STONITH (Fencing) 기능을 사용하지 않고 운영하여도 문제 없음. 사용 하려면 아래 링크 참고 바랍니다.
-Chapter 10. Configuring fencing in a Red Hat High Availability cluster Red Hat Enterprise Linux 8 | Red Hat Customer Portal 
+:warning: After the initial setup, STONITH is enabled by default, but since STONITH (Fencing) is not configured, an error occurs.
 
- 
+It is safe to operate without using the STONITH (Fencing) feature. If you want to use it, please refer to the link below.
+
+[Chapter 10. Configuring fencing in a Red Hat High Availability cluster](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_fencing_in_a_red_hat_high_availability_cluster/index)
+
 
 Resource 등록
 
+```
 # Active Node resource (*havah_active*) 등록
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource create havah_active lsb:havah_active \
   op force-reload interval=0s timeout=60s monitor interval=30s timeout=60s \
@@ -127,50 +126,48 @@ Resource 등록
   op force-reload interval=0s timeout=60s monitor interval=30s timeout=60s \
   restart interval=0s timeout=60s start interval=0s timeout=60s stop \
   interval=0s
-:warning: 만약 개별 리소스에 대해 설정이 필요하다면 op 옵션과 함께 지정해 준다.
+  
+# 만약 개별 리소스에 대해 설정이 필요하다면 op 옵션과 함께 지정해 준다.
 
-글로벌 Default 옵션이 필요하다면 pcs resource op defaults timeout=XX 형식으로 지정해 줄 수 있다.
+# 글로벌 Default 옵션이 필요하다면 pcs resource op defaults timeout=XX 형식으로 지정해 줄 수 있다.
 
-글로벌 Default 옵션에 대한 확인은 pcs resource op defaults 로 확인 할 수 있다. (운영환경에서는 권고하지않음)
+# 글로벌 Default 옵션에 대한 확인은 pcs resource op defaults 로 확인 할 수 있다. (운영환경에서는 권고하지않음)
 
  
 
-Group 생성
+# Group 생성
 
 # Active 그룹을 만들고 Active 관련 (havah_active, havah_status) Resource 를 추가
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource group add Active havah_active havah_status
 
 # Backup 그룹을 만들고 Backup 관련 (havah_backup) Resource 를 추가
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource group add Backup havah_backup
-:check_mark: Resource Group 설정 ( Active 와 Backup 그룹이 같은 노드에 실행 되지 않도록 )
 
+# Resource Group 설정 ( Active 와 Backup 그룹이 같은 노드에 실행 되지 않도록 )
+```
  
 
  
 
-Constraint Order(실행순서 규칙) Config 적용
-
-# havah_active 실행 후 havah_status 실행 되도록 설정
+## Constraint Order(실행순서 규칙) Config 적용
+```
 [root@validator01 ~]$ pcs -f tmp-cib.xml constraint order havah_active then havah_status
- 
+```
 
-resource-stickiness (노드 우선사용 규칙) 적용
-
-# 노드 장애로 인한 Fail Over 후 노드가 정상 되어도 Auto Fail-Back 되지 않도록 설정
+## Resource-stickiness (노드 우선사용 규칙) 적용
+```
 [root@validator01 ~]$ pcs -f tmp-cib.xml resource defaults resource-stickiness=3000
 Warning: Defaults do not apply to resources which override them with their own defined values
- 
+```
 
-Config 적용
-
+## Config 적용
+```
 [root@validator01 ~]$ pcs cluster cib-push tmp-cib.xml
- 
+```
 
- 
-
-Pacemaker Status Check
+## Pacemaker Status Check
 초기 기본 상태 확인
-
+```
 [root@validator01 ~]$ pcs status
 Cluster name: cluster
 Stack: corosync
@@ -197,23 +194,29 @@ Daemon Status:
   corosync: active/enabled
   pacemaker: active/enabled
   pcsd: active/enabled
-:check_mark:  Active Group 의 havah_active, havah_status Resource 가 cluster01 서버에서 실행 중
-:check_mark:  Backup Group 의 havah_backup Resource 가 Stopped(disabled) 되어 있음.
+```
 
- 
+## Cluster Status
 
-havah_backup Resource 기동
+- Active Group의 havah_active, havah_status Resource 가 cluster01 서버에서 실행 중 :white_check_mark:
+- Backup Group의 havah_backup Resource 가 Stopped(disabled) 되어 있음. :white_check_mark:
 
+## havah_backup Resource 기동
+
+```
 [root@validator01 ~]$ pcs resource enable havah_backup
-:check_mark:  pcs status 로 확인하면 cluster02 노드에서 havah_backup resource 기동 되는게 확인 됨.
+```
+- pcs status 로 확인하면 cluster02 노드에서 havah_backup resource 기동 되는게 확인 됨. :white_check_mark:
 
- 
+## Failover 테스트 및 Restore 절차
 
-Failover 테스트 및 Restore 절차
-cluster01 노드 장애로 인해 Failover 상태 확인.
+- cluster01 노드 장애로 인해 Failover 상태 확인.
 
+```
 [root@validator01 ~]$ pcs status
-...
+```
+
+```
 2 nodes configured
 3 resource instances configured (1 DISABLED)    ## 활성화 및 비활성화 Resource 개수 표시
 
@@ -238,14 +241,15 @@ Daemon Status:
   corosync: active/enabled
   pacemaker: active/enabled
   pcsd: active/enabled
-:warning: Pacemaker는 기본적으로 A노드에서 Failed가 발생되어 B노드로 재배치 되었다고 했을 때
+```
 
-A노드가 정상복구된 상태에서 B노드에서 Failed가 발생되면 A노드로 FailOver를 하지 못한다.
+:warning: Pacemaker는 기본적으로 A노드에서 Failed가 발생되어 B노드로 재배치 되었다고 했을 때 A노드가 정상복구된 상태에서 B노드에서 Failed가 발생되면 A노드로 FailOver를 하지 못한다.
 
-그이유는 FailCount 설정 때문이다. 이를 해결할 수 있는 방법은
+그 이유는 FailCount 설정 때문이다. 이를 해결할 수 있는 방법은
 
-첫째, 수동으로 FailCount Reset 해준다.
+- 첫째, 수동으로 FailCount Reset 해준다.
 
+- 
 
 [root@validator01 ~]$ pcs resource failcount show <resource-name>
 
