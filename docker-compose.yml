@@ -1,0 +1,25 @@
+version: "3"
+services:
+   havah-node:
+      image: havah/${TAG}
+      container_name: "havah-node"
+      network_mode: host
+      restart: "on-failure"
+      privileged: true
+      environment:
+         SERVICE: "MainNet"  # MainNet, VegaNet  ## kind of network type
+         GOLOOP_LOG_LEVEL: "info" # trace, debug, info, warn, error, fatal, panic
+         KEY_STORE_FILENAME: ${KEY_NAME} # e.g. keystore.json read a config/keystore.json
+         # e.g. "/goloop/config/keystore.json" read a "config/keystore.json" of host machine
+         KEY_PASSWORD: ${KEY_PASSWORD}
+         FASTEST_START: "true"    # It can be restored from latest Snapshot DB.
+         ROLE: ${ROLE} # validator = 3, citizen = 0
+         #IS_AUTOGEN_CERT: "true" # wallet 자동 생성
+
+      cap_add:
+         - SYS_TIME
+
+      volumes:
+         - ./data:/goloop/data # mount a data volumes
+         - ./config:/goloop/config # mount a config volumes ,Put your used keystore file here.
+         - ./logs:/goloop/logs

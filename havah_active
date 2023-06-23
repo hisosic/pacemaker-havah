@@ -1,0 +1,95 @@
+#! /bin/bash
+#
+# HAVAH Validator start/stop
+#
+
+CWD=$(pwd)
+DOCKER_COMPOSE=`which docker-compose`
+ACTIVE_ADDR="hx79xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  ## ACTIVE 노드 지갑
+KEY_NAME="active_keystore.json"  ## ACTIVE 지갑 파일이름
+KEY_PASSWORD="password123!@#"    ## ACTIVE 지갑 패스워드
+TAG="chain-node"
+ROLE="3"
+
+cd /app/havah-chain-node
+
+LOG_FILE="./logs/pcs_resource.log"
+FILE_TIMESTAMP=$(stat -c %Y "./logs/download.log")
+
+write_log() {
+  local log=$1
+  echo "[active] $(date) $log" >> $LOG_FILE
+}
+
+    write_log "=================================== havah_active ======================================="
+# See how we were called.
+case "$1" in
+
+start)
+    write_log "--------------------------------------- start ------------------------------------------"
+    write_log "pcs resource disable havah_backup"
+    pcs resource disable havah_backup
+    sleep 3
+    if [ -f docker-compose.yml ] && [ $(docker ps | grep havah-node | wc -l) = 0 ] ; then
+
+        write_log ".env 생성"
+        function set_env() {
+          local key="$1"
+          local value="$2"
+          if ! grep -q "^${key}=" .env 2>/dev/null; then
+            echo "${key}=${value}" >> .env
+          else
+            sed -i "s/^${key}=.*$/${key}=${value//&/\\&}/" .env
+          fi
+        }
+        
+        set_env "TAG" "${TAG}"
+        set_env "KEY_NAME" "${KEY_NAME}"
+        set_env "KEY_PASSWORD" "${KEY_PASSWORD}"
+        set_env "ROLE" "${ROLE}"
+        
+	sleep 1;
+        write_log "docker-compose up"
+    	$DOCKER_COMPOSE -f docker-compose.yml up -d
+        write_log "sleep 15"
+	sleep 15;
+    fi
+    ;;
+
+stop)
+    write_log "------------------------------------- stop ------------------------------------------"
+    if [ -f docker-compose.yml ] && [ $(docker ps | grep havah-node | wc -l) != 0 ] ; then
+        write_log "docker-compose down"
+    	$DOCKER_COMPOSE -f docker-compose.yml down
+    fi
+    ;;
+
+status)
+    write_log "------------------------------------- status -----------------------------------------"
+    if [[ $(date +%s) -lt "$((DOWNLOAD_LOG + 60))" ]]; then
+        write_log "Havah DB Downloading..."
+    else
+        addchk=`curl -s --max-time 15  http://localhost:9000/admin/system | jq -r .setting.address`
+        write_log "addchk = $addchk"
+        if [ "$addchk" == "$ACTIVE_ADDR" ] ;then
+            write_log "$addchk == $ACTIVE_ADDR"
+            exit 0
+        else
+            exit 3
+        fi
+    fi
+    ;;
+
+restart|force-reload)
+    write_log "------------------------------------- restart -----------------------------------------"
+    cd "$CWD"
+    $0 stop
+    $0 start
+    rc=$?
+    ;;
+*)
+    echo $"Usage: $0 {start|stop|status|restart|force-reload}"
+    exit 2
+esac
+
+exit $rc

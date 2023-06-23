@@ -1,0 +1,212 @@
+#! /bin/bash
+#
+# Validator Status start/stop
+#
+
+HERE_NAME="cluster01"    ## 해당 노드에 맞게 변경 필요.
+THERE_NAME="cluster02"   ## 해당 노드에 맞게 변경 필요.
+ACTIVE_ADDR="hx79xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"    ## Active 노드 지갑 주소
+BACKUP_ADDR="hx02xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  ## Backup 노드 지갑 주소
+SLACK="https://hooks.slack.com/services/Txxxxx/xxxxx"  ## Slack WebHooks 주소
+
+API_PORT="9000/admin/chain"
+NETWORK_URI="https://ctz.havah.io/admin/chain"
+NETWORK_BH="curl -s --max-time 15 $NETWORK_URI | jq -r .[].height"
+NODE_BH="curl -s --max-time 15 localhost:$API_PORT | jq -r .[].height"
+THERE_BH="curl -s --max-time 15 $THERE_NAME:$API_PORT | jq -r .[].height"
+ADD_CHK="curl -s --max-time 15 http://localhost:9000/admin/system | jq -r .setting.address"
+
+CWD=$(pwd)
+cd /app/havah-chain-node
+
+LOG_FILE="./logs/pcs_resource.log"
+
+write_log() {
+  local log=$1
+  echo "[status] $(date) $log" >> $LOG_FILE
+}
+
+
+slack()
+{
+pcschk=`/usr/sbin/pcs resource show  | grep lsb | grep havah_active | awk '{print $1,$3}'`
+        curl -X POST \
+        -d "{\"blocks\":[
+                {
+                        \"type\":\"section\",
+                        \"text\":{
+                                \"type\":\"mrkdwn\",
+                                \"text\":\"*!! Cluster 상태 변경 알람 !!*\"
+                                }
+                },
+                {
+                        \"type\":\"section\",
+                        \"fields\":[
+                                {
+                                        \"type\":\"mrkdwn\",
+                                        \"text\":\"*Hostname:* `hostname`\"
+                                },
+                                {
+                                        \"type\":\"mrkdwn\",
+                                        \"text\":\"*PCS Status:* $pcschk\"
+                                },
+                                {
+                                        \"type\":\"mrkdwn\",
+                                        \"text\":\"*Time:* `date`\"
+                                }
+                                 ]
+                },
+                {
+                        \"type\":\"divider\"
+                }
+        ]
+}" $SLACK
+}
+
+
+pcs_chk()
+{
+	pcschk1=`/usr/sbin/pcs resource show | grep lsb | grep havah_active | awk '{print $1,$3}'`
+
+	if [ ! -f .pcschk ] ;then
+		echo $pcschk1 > .pcschk
+	else
+		pcschk2=`cat .pcschk`
+	fi
+
+	if [ "$pcschk1" != "$pcschk2" ]; then
+		echo $pcschk1 Change
+		echo $pcschk1 > .pcschk
+		#slack
+	fi
+}
+
+
+
+
+
+bh_chk()
+{
+
+    write_log "bh_chk 시작"
+    head_chk=`curl -i -s localhost:$API_PORT | head -1 | awk '{print $2}'`
+    write_log "$head_chk 확인"
+    
+    if [ "$head_chk" == "200" ] ;then
+    	prep_chk=`echo $NETWORK_BH|bash`
+        write_log "prep_chk = $prep_chk"
+        node_chk=`echo $NODE_BH|bash`
+        write_log "node_chk = $node_chk"
+	add_chk=`echo $ADD_CHK|bash`
+        write_log "add_chk = $add_chk"
+
+        if [ "$add_chk" == "$ACTIVE_ADDR" ];then
+        write_log "ACTIVE_ADDR = $ACTIVE_ADDR"
+
+	    if [ $(( $prep_chk - $node_chk )) -lt 80 ]; then
+		echo "$(( $prep_chk - $node_chk ))"
+	    	echo "true : 현재 네트워크 BH와 로컬노드의 BH차이가 80 미만 Pass"
+                write_log "현재 네트워크 BH와 로컬노드의 BH차이가 80 미만 Pass"
+	    	exit 0
+
+	    else
+                write_log "there_bh_chk"
+		there_bh_chk
+                
+                
+	    fi
+        else
+            write_log "This node is not the validator key"
+            echo "This node is not the validator key"
+	    exit 0
+	fi
+    fi
+}
+
+
+there_bh_chk()
+{
+    write_log "there_bh_chk 시작"
+    head_chk=`curl -i -s $THERE_NAME:$API_PORT | head -1 | awk '{print $2}'`
+    write_log "head_chk = $head_chk"
+    if [ "$head_chk" == "200" ] ;then
+    	prep_chk=`echo $NETWORK_BH|bash`
+        write_log "prep_chk = $prep_chk"
+        there_chk=`echo $THERE_BH|bash`
+        write_log "there_chk = $there_chk"
+	    if [ $(( $prep_chk - $there_chk )) -lt 5 ]; then
+		echo "$(( $prep_chk - $there_chk ))"
+	    	echo "true : 현재 네트워크 BH와 $THERE_NAME 의 BH차이가 5 미만 Resource Move"
+                write_log "현재 네트워크 BH와 $THERE_NAME 의 BH차이가 5 미만 Resource Move"
+                /usr/sbin/pcs resource disable havah_backup
+                write_log "havah_backup disable"
+                /usr/sbin/pcs resource move Active $THERE_NAME
+                write_log "resource move Active $THERE_NAME"
+                write_log "exit 0"
+	    	exit 0
+	    else
+                write_log "exit 0"
+	        exit 0
+	    fi
+    write_log "exit 0"
+    exit 0
+    fi
+}
+
+
+
+case "$1" in
+
+start)
+    if [ $(docker ps | grep havah-node | wc -l) = 0 ] ; then
+       write_log "start)"
+       echo "check"
+    fi
+    pcs_chk
+    ;;
+
+stop)
+    if [ $(docker ps | grep havah-node | wc -l) != 0 ] ; then
+       write_log "stop)"
+       echo "check"
+    fi
+    pcs_chk
+    ;;
+
+status)
+    write_log "pcs_chk"
+    pcs_chk
+    
+
+    whilenum=0
+
+    while [ $whilenum -le 2 ]
+    write_log "whilenum = $whilenum"
+    do
+        write_log "bh_chk"
+    	bh_chk
+    	((whilenum++))
+        write_log "sleep 5"
+    	sleep 5
+    done
+
+    write_log "there_bh_chk"
+    there_bh_chk
+
+    echo "false : 문제가 있지만 $THERE_NAME 의 노드도 sync가 정상이 아니어서 SKIP"
+    write_log "exit 0"
+    exit 0
+    ;;
+
+restart|force-reload)
+    cd "$CWD"
+    $0 stop
+    $0 start
+    rc=$?
+    ;;
+*)
+    echo $"Usage: $0 {start|stop|status|restart|force-reload}"
+    exit 2
+esac
+
+exit $rc
