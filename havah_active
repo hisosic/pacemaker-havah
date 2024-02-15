@@ -9,9 +9,10 @@ ACTIVE_ADDR="hx79xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  ## ACTIVE 노드 지�
 KEY_NAME="active_keystore.json"  ## ACTIVE 지갑 파일이름
 KEY_PASSWORD="password123!@#"    ## ACTIVE 지갑 패스워드
 TAG="chain-node"
+CON_NAME="havah-chain-node"
 ROLE="3"
 
-cd /app/havah-chain-node
+cd /app/${CON_NAME}
 
 LOG_FILE="./logs/pcs_resource.log"
 FILE_TIMESTAMP=$(stat -c %Y "./logs/download.log")
@@ -30,7 +31,7 @@ start)
     write_log "pcs resource disable havah_backup"
     pcs resource disable havah_backup
     sleep 3
-    if [ -f docker-compose.yml ] && [ $(docker ps | grep havah-node | wc -l) = 0 ] ; then
+    if [ -f docker-compose.yml ] && [ $(docker ps | grep ${CON_NAME} | wc -l) = 0 ] ; then
 
         write_log ".env 생성"
         function set_env() {
@@ -58,7 +59,7 @@ start)
 
 stop)
     write_log "------------------------------------- stop ------------------------------------------"
-    if [ -f docker-compose.yml ] && [ $(docker ps | grep havah-node | wc -l) != 0 ] ; then
+    if [ -f docker-compose.yml ] && [ $(docker ps | grep ${CON_NAME} | wc -l) != 0 ] ; then
         write_log "docker-compose down"
     	$DOCKER_COMPOSE -f docker-compose.yml down
     fi

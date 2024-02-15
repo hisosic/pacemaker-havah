@@ -9,9 +9,10 @@ BACKUP_ADDR="hx02xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"   ## BACKUP 노드 지�
 KEY_NAME="backup_keystore.json"     ## BACKUP 지갑 파일이름
 KEY_PASSWORD="password123!@#"       ## BACKUP 지갑 패스워드
 TAG="chain-node"
+CON_NAME="havah-chain-node"
 ROLE="0"
 
-cd /app/havah-chain-node
+cd /app/${CON_NAME}
 
 LOG_FILE="./logs/pcs_resource.log"
 DOWNLOAD_LOG=$(stat -c %Y "./logs/download.log")
@@ -27,7 +28,7 @@ case "$1" in
 
 start)
     write_log "--------------------------------------- start ------------------------------------------"
-    if [ -f docker-compose.yml ] && [ $(docker ps | grep havah-node | wc -l) = 0 ] ; then
+    if [ -f docker-compose.yml ] && [ $(docker ps | grep ${CON_NAME} | wc -l) = 0 ] ; then
         write_log ".env 생성"
         function set_env() {
           local key="$1"
@@ -56,7 +57,7 @@ start)
 
 stop)
     write_log "-------------------------------------- stop ------------------------------------------"
-    if [ -f docker-compose.yml ] && [ $(docker ps | grep havah-node | wc -l) != 0 ] ; then
+    if [ -f docker-compose.yml ] && [ $(docker ps | grep ${CON_NAME} | wc -l) != 0 ] ; then
         write_log "docker-compose down"
     	$DOCKER_COMPOSE -f docker-compose.yml down
     fi

@@ -2,7 +2,7 @@ version: "3"
 services:
    havah-node:
       image: havah/${TAG}
-      container_name: "havah-node"
+      container_name: "havah-chain-node"
       network_mode: host
       restart: "on-failure"
       privileged: true
@@ -12,7 +12,7 @@ services:
          KEY_STORE_FILENAME: ${KEY_NAME} # e.g. keystore.json read a config/keystore.json
          # e.g. "/goloop/config/keystore.json" read a "config/keystore.json" of host machine
          KEY_PASSWORD: ${KEY_PASSWORD}
-         FASTEST_START: "true"    # It can be restored from latest Snapshot DB.
+         #FASTEST_START: "true"    # It can be restored from latest Snapshot DB.
          ROLE: ${ROLE} # validator = 3, citizen = 0
          #IS_AUTOGEN_CERT: "true" # wallet 자동 생성
 
